@@ -3,5 +3,6 @@ pandas
 numpy
 millify
 plotly
-streamlit==1.18.1
+streamlit
 XlsxWriter
+python-dotenv
