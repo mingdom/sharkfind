@@ -100,6 +100,53 @@ def callback():
 # Create a text input field for the user to enter a stock ticker
 symbol_input = st.text_input("Enter a stock ticker").upper()
 
+
+def display_ratios(ratios_data):
+    # Display financial ratios table
+    empty_lines(1)
+    st.markdown("**Financial Ratios**")
+    # Rename keys and format values as needed
+    ratios_table = ratios_data.rename(
+        columns={
+            "Days of Sales Outstanding": "Days of Sales Outstanding (days)",
+            "Days of Inventory Outstanding": "Days of Inventory Outstanding (days)",
+            "Operating Cycle": "Operating Cycle (days)",
+            "Days of Payables Outstanding": "Days of Payables Outstanding (days)",
+            "Cash Conversion Cycle": "Cash Conversion Cycle (days)",
+            "Gross Profit Margin": "Gross Profit Margin (%)",
+            "Operating Profit Margin": "Operating Profit Margin (%)",
+            "Pretax Profit Margin": "Pretax Profit Margin (%)",
+            "Net Profit Margin": "Net Profit Margin (%)",
+            "Effective Tax Rate": "Effective Tax Rate (%)",
+            "Return on Assets": "Return on Assets (%)",
+            "Return on Equity": "Return on Equity (%)",
+            "Return on Capital Employed": "Return on Capital Employed (%)",
+            "EBIT per Revenue": "EBIT per Revenue (%)",
+            "Debt Ratio": "Debt Ratio (%)",
+            "Long-term Debt to Capitalization": "Long-term Debt to Capitalization (%)",
+            "Total Debt to Capitalization": "Total Debt to Capitalization (%)",
+            "Payout Ratio": "Payout Ratio (%)",
+            "Operating Cash Flow Sales Ratio": "Operating Cash Flow Sales Ratio (%)",
+            "Dividend Yield": "Dividend Yield (%)",
+        }
+    )
+
+    key_columns = ["Return on Assets (%)", "Return on Equity (%)"]
+    ratios_table = ratios_table.loc[:, key_columns]
+
+    # Multiply values in columns with "%" symbol by 100
+    for col in ratios_table.columns:
+        if "%" in col:
+            ratios_table[col] = ratios_table[col] * 100
+
+    ratios_table = round(ratios_table.T, 2)
+
+    ratios_table = ratios_table.sort_index(axis=1, ascending=True)
+
+    # Display ratios table
+    st.dataframe(ratios_table, width=800, height=400)
+
+
 # Check if the "Go" button has been clicked
 if st.button("Go", on_click=callback) or st.session_state["btn_clicked"]:
 
@@ -113,7 +160,6 @@ if st.button("Go", on_click=callback) or st.session_state["btn_clicked"]:
         company_data = get_company_info(symbol_input)
         metrics_data = key_metrics(symbol_input)
         income_data = income_statement(symbol_input)
-        performance_data = stock_price(symbol_input)
         ratios_data = financial_ratios(symbol_input)
         balance_sheet_data = balance_sheet(symbol_input)
         cashflow_data = cash_flow(symbol_input)
@@ -225,14 +271,12 @@ if st.button("Go", on_click=callback) or st.session_state["btn_clicked"]:
 
             # Slice the income data to only show the selected year and format numbers with millify function
             income_statement_data = income_statement_data.loc[:, [year]]
-            income_statement_data = income_statement_data.applymap(
+            income_statement_data = income_statement_data.map(
                 lambda x: millify(x, precision=2)
             )
 
             # Apply the color_highlighter function to highlight negative numbers
-            income_statement_data = income_statement_data.style.applymap(
-                color_highlighter
-            )
+            income_statement_data = income_statement_data.style.map(color_highlighter)
 
             # Style the table headers with black color
             headers = {"selector": "th:not(.index_name)", "props": [("color", "black")]}
@@ -272,61 +316,7 @@ if st.button("Go", on_click=callback) or st.session_state["btn_clicked"]:
             ],
         }
 
-        # Display market performance
-        # Determine the color of the line based on the first and last prices
-        line_color = (
-            "rgb(60, 179, 113)"
-            if performance_data.iloc[0]["Price"] > performance_data.iloc[-1]["Price"]
-            else "rgb(255, 87, 48)"
-        )
-
-        # Create the line chart
-        fig = go.Figure(
-            go.Scatter(
-                x=performance_data.index,
-                y=performance_data["Price"],
-                mode="lines",
-                name="Price",
-                line=dict(color=line_color),
-            )
-        )
-
-        # Customize the chart layout
-        fig.update_layout(
-            title={
-                "text": "Market Performance",
-            },
-            dragmode="pan",
-            xaxis=dict(fixedrange=True),
-            yaxis=dict(fixedrange=True),
-        )
-
-        # Render the line chart
-        st.plotly_chart(fig, config=config, use_container_width=True)
-
-        # Display net income
-        # Create the line chart
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=income_data.index,
-                y=income_data["= Net Income"],
-                mode="lines+markers",
-                line=dict(color="purple"),
-                marker=dict(size=5),
-            )
-        )
-
-        # Customize the chart layout
-        fig.update_layout(
-            title="Net Income",
-            dragmode="pan",
-            xaxis=dict(tickmode="array", tickvals=income_data.index, fixedrange=True),
-            yaxis=dict(fixedrange=True),
-        )
-
-        # Display the graph
-        st.plotly_chart(fig, config=config, use_container_width=True)
+        display_ratios(ratios_data=ratios_data)
 
         # Display profitability margins
         # Create an horizontal bar chart of profitability margins
@@ -520,47 +510,6 @@ if st.button("Go", on_click=callback) or st.session_state["btn_clicked"]:
         # Display the plot
         st.plotly_chart(fig, config=config, use_container_width=True)
 
-        # Display financial ratios table
-        empty_lines(1)
-        st.markdown("**Financial Ratios**")
-        # Rename keys and format values as needed
-        ratios_table = ratios_data.rename(
-            columns={
-                "Days of Sales Outstanding": "Days of Sales Outstanding (days)",
-                "Days of Inventory Outstanding": "Days of Inventory Outstanding (days)",
-                "Operating Cycle": "Operating Cycle (days)",
-                "Days of Payables Outstanding": "Days of Payables Outstanding (days)",
-                "Cash Conversion Cycle": "Cash Conversion Cycle (days)",
-                "Gross Profit Margin": "Gross Profit Margin (%)",
-                "Operating Profit Margin": "Operating Profit Margin (%)",
-                "Pretax Profit Margin": "Pretax Profit Margin (%)",
-                "Net Profit Margin": "Net Profit Margin (%)",
-                "Effective Tax Rate": "Effective Tax Rate (%)",
-                "Return on Assets": "Return on Assets (%)",
-                "Return on Equity": "Return on Equity (%)",
-                "Return on Capital Employed": "Return on Capital Employed (%)",
-                "EBIT per Revenue": "EBIT per Revenue (%)",
-                "Debt Ratio": "Debt Ratio (%)",
-                "Long-term Debt to Capitalization": "Long-term Debt to Capitalization (%)",
-                "Total Debt to Capitalization": "Total Debt to Capitalization (%)",
-                "Payout Ratio": "Payout Ratio (%)",
-                "Operating Cash Flow Sales Ratio": "Operating Cash Flow Sales Ratio (%)",
-                "Dividend Yield": "Dividend Yield (%)",
-            }
-        )
-
-        # Multiply values in columns with "%" symbol by 100
-        for col in ratios_table.columns:
-            if "%" in col:
-                ratios_table[col] = ratios_table[col] * 100
-
-        ratios_table = round(ratios_table.T, 2)
-
-        ratios_table = ratios_table.sort_index(axis=1, ascending=True)
-
-        # Display ratios table
-        st.dataframe(ratios_table, width=800, height=400)
-
     except Exception as e:
         st.error("Not possible to develop dashboard. Please try again.")
         sys.exit()
@@ -590,28 +539,17 @@ if st.button("Go", on_click=callback) or st.session_state["btn_clicked"]:
         # Combine all dataframes into a dictionary
         dfs = {
             "Stock": company_data,
-            "Market Performance": performance_data,
-            "Income Statement": income_data,
             "Balance Sheet": balance_sheet_data,
             "Cash flow": cashflow_data,
             "Key Metrics": metrics_data,
             "Financial Ratios": ratios_table,
         }
 
-        # Write the dataframes to an Excel file, with special formatting for the Market Performance sheet
         output = BytesIO()
         writer = pd.ExcelWriter(output, engine="xlsxwriter")
         for sheet_name, df in dfs.items():
-            if sheet_name == "Market Performance":
-                # Rename index column and format date column
-                df.index.name = "Date"
-                df = df.reset_index()
-                df["Date"] = pd.to_datetime(df["Date"]).dt.strftime("%Y-%m-%d")
-                # Write dataframe to Excel sheet without index column
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-            else:
-                # Write dataframe to Excel sheet with index column
-                df.to_excel(writer, sheet_name=sheet_name, index=True)
+            # Write dataframe to Excel sheet with index column
+            df.to_excel(writer, sheet_name=sheet_name, index=True)
             # Autofit columns in Excel sheet
             writer.sheets[sheet_name].autofit()
 
